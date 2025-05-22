@@ -1,12 +1,13 @@
 import os
 import cv2
 
-def get_folder_name():
+def get_folder_name(parent_dir):
     while True:
-        folder_name = input("Enter folder name: ")
-        if not os.path.exists(folder_name):
-            os.makedirs(folder_name)
-            return folder_name
+        subfolder_name = input("Enter folder name: ")
+        full_path = os.path.join(parent_dir, subfolder_name)
+        if not os.path.exists(full_path):
+            os.makedirs(full_path)
+            return full_path
         else:
             print("Folder already exists. Please choose a different name.")
 
@@ -30,7 +31,7 @@ def initialize_camera():
             return None, None, False
     return picam2, cap, use_picamera
 
-def capture_images(folder_name):
+def capture_images(folder_path):
     picam2, cap, use_picamera = initialize_camera()
     if picam2 is None and cap is None:
         return
@@ -48,7 +49,7 @@ def capture_images(folder_name):
         if key == ord('q'):
             break
         elif key == 13:  # Enter key
-            filename = os.path.join(folder_name, f"image_{counter:03d}.jpg")
+            filename = os.path.join(folder_path, f"image_{counter:03d}.jpg")
             cv2.imwrite(filename, frame)
             counter += 1
             print(f"Saved {filename}")
@@ -59,5 +60,9 @@ def capture_images(folder_name):
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    folder_name = get_folder_name()
-    capture_images(folder_name)
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    authorized_faces_dir = os.path.join(script_dir, "authorized_faces")
+    if not os.path.exists(authorized_faces_dir):
+        os.makedirs(authorized_faces_dir)
+    folder_path = get_folder_name(authorized_faces_dir)
+    capture_images(folder_path)

@@ -1,5 +1,6 @@
 import os
 import cv2
+import re
 
 def get_folder_name(parent_dir):
     while True:
@@ -9,7 +10,15 @@ def get_folder_name(parent_dir):
             os.makedirs(full_path)
             return full_path
         else:
-            print("Folder already exists. Please choose a different name.")
+            print("Folder already exists.")
+            while True:
+                choice = input("Do you want to (1) change the name or (2) add pictures to the existing folder? Enter 1 or 2: ")
+                if choice == '1':
+                    break  # go back to ask for a new name
+                elif choice == '2':
+                    return full_path
+                else:
+                    print("Invalid choice. Please enter 1 or 2.")
 
 def initialize_camera():
     use_picamera = False
@@ -31,11 +40,24 @@ def initialize_camera():
             return None, None, False
     return picam2, cap, use_picamera
 
+def get_next_counter(folder_path):
+    existing_files = os.listdir(folder_path)
+    pattern = r'image_(\d{3})\.jpg'
+    numbers = []
+    for file in existing_files:
+        match = re.match(pattern, file)
+        if match:
+            numbers.append(int(match.group(1)))
+    if numbers:
+        return max(numbers) + 1
+    else:
+        return 0
+
 def capture_images(folder_path):
     picam2, cap, use_picamera = initialize_camera()
     if picam2 is None and cap is None:
         return
-    counter = 0
+    counter = get_next_counter(folder_path)
     while True:
         if use_picamera:
             frame = picam2.capture_array()

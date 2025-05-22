@@ -7,25 +7,39 @@ from picamera2 import Picamera2
 import numpy as np
 import time
 from collections import deque
+import os  # Added for directory operations
 
 # Configure logging
 logging.basicConfig(filename='face_auth.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def load_encodings(file_path):
-    """Load known face encodings and names from a pickle file."""
-    try:
-        with open(file_path, "rb") as f:
-            data = pickle.load(f)
-        return data["encodings"], data["names"]
-    except Exception as e:
-        logging.error(f"Failed to load encodings from {file_path}: {e}")
-        raise
+def load_encodings(models_dir):
+    """Load known face encodings and names from pickle files in the models directory."""
+    known_encodings = []
+    known_names = []
+    if not os.path.exists(models_dir):
+        logging.error(f"Models directory {models_dir} does not exist")
+        raise FileNotFoundError(f"Models directory {models_dir} does not exist")
+    for filename in os.listdir(models_dir):
+        if filename.endswith(".pickle"):
+            name = os.path.splitext(filename)[0]  # Extract name, e.g., "alice" from "alice.pickle"
+            file_path = os.path.join(models_dir, filename)
+            try:
+                with open(file_path, "rb") as f:
+                    encodings = pickle.load(f)  # Load list of encodings
+                for encoding in encodings:
+                    known_encodings.append(encoding)
+                    known_names.append(name)  # Associate each encoding with the person’s name
+            except Exception as e:
+                logging.error(f"Failed to load encodings from {file_path}: {e}")
+    if not known_encodings:
+        logging.warning("No encodings loaded. Check if the models directory contains valid pickle files.")
+    return known_encodings, known_names
 
-def main(encodings_file="encodings.pickle", io_script="io_control.py", tolerance=0.5):
+def main(models_dir="models", io_script="io_control.py", tolerance=0.5):
     """Main function for face authentication."""
     # Load known encodings
     try:
-        known_encodings, known_names = load_encodings(encodings_file)
+        known_encodings, known_names = load_encodings(models_dir)
         logging.info("Successfully loaded face encodings")
     except Exception as e:
         logging.error(f"Initialization failed: {e}")

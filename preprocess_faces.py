@@ -1,4 +1,5 @@
 import os
+import face_recognition_models
 import face_recognition
 import pickle
 

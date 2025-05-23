@@ -3,7 +3,6 @@ import face_recognition
 import pickle
 import subprocess
 import logging
-import picamera2
 import numpy as np
 import time
 from collections import deque
@@ -21,32 +20,26 @@ DETECTION_WINDOW = 5  # Seconds to consider for detection frequency
 MIN_AUTH_INTERVAL = 300  # Minimum time between authorizations (5 minutes)
 
 def load_encodings(models_dir="models"):
-    """Load face encodings and names from pickle files in the models directory."""
     encodings = []
     names = []
-    if not os.path.exists(models_dir):
-        logging.error(f"Models directory {models_dir} does not exist.")
-        return encodings, names
-    
     for file in os.listdir(models_dir):
         if file.endswith(".pickle"):
             try:
                 with open(os.path.join(models_dir, file), 'rb') as f:
-                    data = pickle.load(f)
-                    encodings.extend(data["encodings"])
-                    names.extend(data["names"])
+                    person_encodings = pickle.load(f)
+                    person_name = os.path.splitext(file)[0]  # Extract name from filename
+                    for encoding in person_encodings:
+                        encodings.append(encoding)
+                        names.append(person_name)
             except Exception as e:
                 logging.error(f"Error loading {file}: {e}")
     return encodings, names
 
 def eye_aspect_ratio(eye):
     """Calculate the Eye Aspect Ratio (EAR) for a given eye."""
-    # Compute Euclidean distances between vertical eye landmarks
     A = dist.euclidean(eye[1], eye[5])
     B = dist.euclidean(eye[2], eye[4])
-    # Compute Euclidean distance between horizontal eye landmarks
     C = dist.euclidean(eye[0], eye[3])
-    # Calculate EAR
     ear = (A + B) / (2.0 * C)
     return ear
 
@@ -54,42 +47,51 @@ def has_blink(detections, frame_counter):
     """Check for blink patterns in detection history."""
     if len(detections) < CONSECUTIVE_FRAMES:
         return False
-    
-    # Check the most recent detections for consecutive low EAR values
     recent_detections = list(detections)[-CONSECUTIVE_FRAMES:]
     blink_detected = all(d[2] < EAR_THRESHOLD for d in recent_detections)
     return blink_detected
 
 def main():
     """Main function for face authentication with blink detection."""
-    # Load known face encodings
     known_encodings, known_names = load_encodings()
     if not known_encodings:
         print("No known face encodings found. Exiting.")
         logging.error("No known face encodings loaded.")
         return
 
-    # Initialize camera
-    camera = picamera2.Picamera2()
-    config = camera.create_preview_configuration(main={"size": (640, 480)})
-    camera.configure(config)
-    camera.start()
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("Error: Could not open webcam.")
+        logging.error("Could not open webcam.")
+        return
 
-    # Initialize tracking variables
-    person_tracker = {}  # {name: deque([(timestamp, frame_counter, ear), ...])}
-    last_auth_time = {}  # {name: timestamp}
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
+    person_tracker = {}
+    last_auth_time = {}
     frame_counter = 0
 
     try:
         while True:
-            # Capture frame
-            frame = camera.capture_array()
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            # Capture frame from webcam
+            ret, frame = cap.read()
+            if not ret:
+                print("Error: Failed to capture frame.")
+                logging.error("Failed to capture frame.")
+                break
             frame_counter += 1
 
-            # Detect faces
-            face_locations = face_recognition.face_locations(frame)
-            face_encodings = face_recognition.face_encodings(frame, face_locations)
+            # Resize frame for faster processing
+            small_frame = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
+
+            # Detect faces on the smaller frame
+            face_locations = face_recognition.face_locations(small_frame)
+            face_encodings = face_recognition.face_encodings(small_frame, face_locations)
+
+            # Scale face locations back to original frame size
+            face_locations = [(top*2, right*2, bottom*2, left*2) for (top, right, bottom, left) in face_locations]
+
             print(f"Frame {frame_counter}: Detected {len(face_locations)} faces")
 
             for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
@@ -149,7 +151,7 @@ def main():
                 break
 
     finally:
-        camera.stop()
+        cap.release()
         cv2.destroyAllWindows()
 
 if __name__ == "__main__":

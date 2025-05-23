@@ -1,0 +1,8 @@
+2025-05-24 01:09:57,273 - ERROR - Error loading morteza.pickle: list indices must be integers or slices, not str
+2025-05-24 01:09:57,273 - ERROR - No known face encodings loaded.
+2025-05-24 01:15:52,400 - ERROR - No known face encodings loaded.
+2025-05-24 01:18:19,855 - INFO - Authorizing morteza
+2025-05-24 01:19:55,729 - INFO - Authorizing morteza
+2025-05-24 01:30:24,667 - ERROR - Error loading morteza.pickle: list indices must be integers or slices, not str
+2025-05-24 01:30:24,668 - ERROR - No known face encodings loaded.
+2025-05-24 01:31:14,621 - INFO - Authorizing morteza

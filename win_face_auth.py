@@ -14,7 +14,7 @@ logging.basicConfig(filename='face_auth.log', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Configurable parameters
-EAR_THRESHOLD = 0.3  # Threshold for blink detection
+EAR_THRESHOLD = 0.16  # Threshold for blink detection
 CONSECUTIVE_FRAMES = 3  # Number of consecutive frames for a blink
 DETECTION_WINDOW = 5  # Seconds to consider for detection frequency
 MIN_AUTH_INTERVAL = 300  # Minimum time between authorizations (5 minutes)
@@ -82,15 +82,10 @@ def main():
                 break
             frame_counter += 1
 
-            # Resize frame for faster processing
-            small_frame = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
 
             # Detect faces on the smaller frame
-            face_locations = face_recognition.face_locations(small_frame)
-            face_encodings = face_recognition.face_encodings(small_frame, face_locations)
-
-            # Scale face locations back to original frame size
-            face_locations = [(top*2, right*2, bottom*2, left*2) for (top, right, bottom, left) in face_locations]
+            face_locations = face_recognition.face_locations(frame)
+            face_encodings = face_recognition.face_encodings(frame, face_locations)
 
             print(f"Frame {frame_counter}: Detected {len(face_locations)} faces")
 

@@ -24,17 +24,24 @@ SCALE_FACTOR = 0.5
 NUM_WORKERS = max(1, os.cpu_count() - 1)
 
 def load_encodings(models_dir="models"):
+    """Load face encodings and names from pickle files in the models directory."""
     encodings = []
     names = []
+    if not os.path.exists(models_dir):
+        logging.error(f"Models directory {models_dir} does not exist.")
+        return encodings, names
+    
     for file in os.listdir(models_dir):
         if file.endswith(".pickle"):
+            # Derive the person's name from the filename (e.g., "john.pickle" -> "john")
+            name = os.path.splitext(file)[0]
             try:
                 with open(os.path.join(models_dir, file), 'rb') as f:
-                    person_encodings = pickle.load(f)
-                    person_name = os.path.splitext(file)[0]
-                    for encoding in person_encodings:
-                        encodings.append(encoding)
-                        names.append(person_name)
+                    encodings_list = pickle.load(f)
+                    # Extend the encodings list with the loaded encodings
+                    encodings.extend(encodings_list)
+                    # Extend the names list with the person's name repeated for each encoding
+                    names.extend([name] * len(encodings_list))
             except Exception as e:
                 logging.error(f"Error loading {file}: {e}")
     return encodings, names

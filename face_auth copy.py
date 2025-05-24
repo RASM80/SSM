@@ -36,11 +36,15 @@ def load_encodings(models_dir="models"):
     
     for file in os.listdir(models_dir):
         if file.endswith(".pickle"):
+            # Derive the person's name from the filename (e.g., "john.pickle" -> "john")
+            name = os.path.splitext(file)[0]
             try:
                 with open(os.path.join(models_dir, file), 'rb') as f:
-                    data = pickle.load(f)
-                    encodings.extend(data["encodings"])
-                    names.extend(data["names"])
+                    encodings_list = pickle.load(f)
+                    # Extend the encodings list with the loaded encodings
+                    encodings.extend(encodings_list)
+                    # Extend the names list with the person's name repeated for each encoding
+                    names.extend([name] * len(encodings_list))
             except Exception as e:
                 logging.error(f"Error loading {file}: {e}")
     return encodings, names
